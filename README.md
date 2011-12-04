@@ -2,6 +2,7 @@
 
 it's fully compatible with [JS clients](http://www.playdarjs.org/)
 
+It should be compatible with python 2.X, and use [bottle](http://bottlepy.org/) and [cherrypy wsgi server](http://docs.cherrypy.org/stable/refman/wsgiserver/init.html)
 
 Current notes:
 
