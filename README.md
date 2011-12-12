@@ -4,9 +4,7 @@ It's fully compatible with [JS clients](http://www.playdarjs.org/)
 
 
 Current notes:
+* Note that it auto-authenticate all clients
+* Implemented resolver do nothing ;-), but are plugin'able
+* there is a **test resolver** (which resolve artist/title : testa/web & testa/local)
 
-    * Note that it auto-authenticate all clients
-    * Implemented resolver do nothing ;-), but are plugin'able
-    * there is a **test resolver** (which resolve artist/title : testa/web & testa/local)
-
-(test)
