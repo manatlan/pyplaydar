@@ -14,6 +14,13 @@
 ## GNU General Public License for more details.
 ##
 ########################################################################
+import os,sys
+#ensure that the script is running in its folder
+try:
+    os.chdir(os.path.split(sys.argv[0])[0])
+except:
+    pass
+
 import libs.bottle as web # http://bottle.paws.de/page/docs
 import resolver
 import uuid,json
@@ -116,4 +123,5 @@ def play(sid):
         return obj
 
 if __name__=="__main__":
+
     web.run(host="0.0.0.0",port=60210,server="cherrypy")
