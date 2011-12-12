@@ -3,8 +3,13 @@
 It's fully compatible with [JS clients](http://www.playdarjs.org/)
 
 
-Current notes:
+Current notes about current implementation :
+
 * Note that it auto-authenticate all clients
 * Implemented resolver do nothing ;-), but are plugin'able
 * there is a **test resolver** (which resolve artist/title : testa/web & testa/local)
 
+Current notes about implementation of the playdar protocol :
+
+* resolve method : for a same query : it's always the same QID which is returned
+* get_results : for a same file/object : it's always the same SID which is returned
