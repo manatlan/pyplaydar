@@ -8,3 +8,5 @@ Current notes:
     * Note that it auto-authenticate all clients
     * Implemented resolver do nothing ;-), but are plugin'able
     * there is a **test resolver** (which resolve artist/title : testa/web & testa/local)
+
+(test)
