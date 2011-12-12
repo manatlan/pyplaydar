@@ -122,6 +122,18 @@ def play(sid):
         if size: web.response.content_length = str(size)
         return obj
 
+@web.get('/')
+def index():
+    return "pyplaydar is running"
+
+@web.error(404)
+def Error404(code):
+    return '404 Not found'
+
+@web.error(500)
+def Error404(code):
+    return '500 Server Error (see log)'
+
 if __name__=="__main__":
 
     web.run(host="0.0.0.0",port=60210,server="cherrypy")
