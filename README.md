@@ -6,7 +6,7 @@ It's fully compatible with [JS clients](http://www.playdarjs.org/)
 Current notes about current implementation :
 
 * Note that it auto-authenticate all clients
-* Implemented resolver do nothing ;-), but are plugin'able
+* Currently, it uses its own *stupid resolvers* (which are plugin'able), but I'd like to make it compatible with original playdar's resolvers.
 * there is a **test resolver** (which resolve artist/title : testa/web & testa/local)
 
 Current notes about implementation of the playdar protocol :
