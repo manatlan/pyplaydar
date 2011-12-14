@@ -1,5 +1,19 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+########################################################################
+##
+##    Copyright (C) 2011 manatlan manatlan[at]gmail(dot)com
+##
+## This program is free software; you can redistribute it and/or modify
+## it under the terms of the GNU General Public License as published
+## by the Free Software Foundation; version 2 only.
+##
+## This program is distributed in the hope that it will be useful,
+## but WITHOUT ANY WARRANTY; without even the implied warranty of
+## MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+## GNU General Public License for more details.
+##
+########################################################################
 import urllib,json
 
 HOST = "localhost:60210"
@@ -22,6 +36,16 @@ def testu(path):
 def testr(path):
     print "CALL:","http://%s%s"%(HOST,path)
     return urllib.urlopen("http://%s%s"%(HOST,path))
+
+
+# tests UT in py files
+#===========================================================================
+import os
+old=os.getcwd()
+os.chdir("resolvers")
+execfile("__init__.py")
+os.chdir(old)
+execfile("resolver.py")
 
 
 # test auth mechanism (not really unittest here)

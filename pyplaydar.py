@@ -41,6 +41,8 @@ log= lambda x: logger.info("SERVER: "+x)
 logerr= lambda x: logger.error("SERVER: "+x)
 
 #\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\ authent
+# seems to be only needed for web authent ? no ?
+#\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 @web.get('/auth_1/')
 def auth1():
     receiverurl=web.request.query.receiverurl
