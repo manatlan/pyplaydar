@@ -7,7 +7,7 @@ Current notes about current implementation :
 * **It (should) supports the original playdar's resolvers** !!!
 * for web-clients : Note that it auto-authenticate all clients
 * there is a **test/resolver.py** (which resolve artist/title : testa/web & testa/local)
-* Currently it doesn't work on Win's machines : but can be easily corrected in file __`resolvers/__init__.py`__
+* Currently it doesn't work on Win's machines : but can be easily corrected in file ``resolvers/__init__.py``
 
 Current notes about implementation of the playdar protocol :
 
