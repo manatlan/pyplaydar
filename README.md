@@ -4,9 +4,10 @@ It's fully compatible with [JS clients](http://www.playdarjs.org/)
 
 Current notes about current implementation :
 
-* Note that it auto-authenticate all clients
-* It's now support the original playdar's resolvers !!!
+* **It (should) supports the original playdar's resolvers** !!!
+* for web-clients : Note that it auto-authenticate all clients
 * there is a **test/resolver.py** (which resolve artist/title : testa/web & testa/local)
+* Currently it doesn't work on Win's machines : but can be easily corrected in file __`resolvers/__init__.py`__
 
 Current notes about implementation of the playdar protocol :
 
