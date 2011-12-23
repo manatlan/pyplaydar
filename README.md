@@ -2,6 +2,13 @@
 
 It's fully compatible with [JS clients](http://www.playdarjs.org/)
 
+----
+**IMPORTANT NOTE** (23/12/2011)
+
+The next release (january 2012) will come with a resolver which will be able to use the [Tomahawk's resolvers](https://github.com/tomahawk-player/tomahawk-resolvers), using [pyv8](http://code.google.com/p/pyv8/).
+And with a web frontend page to test playdar's api easily in a browser !
+----
+
 Current notes about current implementation :
 
 * **It (should) supports the original playdar's resolvers** !!!
