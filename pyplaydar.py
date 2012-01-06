@@ -22,6 +22,8 @@ except:
     pass
 
 import libs.bottle as web # http://bottle.paws.de/page/docs
+web.TEMPLATE_PATH=[os.path.join(os.path.dirname(__file__),"static")]
+#~ web.debug(True)
 import resolver
 import uuid,json
 import logging
@@ -125,8 +127,9 @@ def play(sid):
         return obj
 
 @web.get('/')
+@web.view("web")
 def index():
-    return "pyplaydar is running"
+    return {"msg":"pyplaydar is running"}
 
 @web.error(404)
 def Error404(code):

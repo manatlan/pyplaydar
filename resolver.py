@@ -68,7 +68,7 @@ def initSearch(qid,artist,album,track):
     if qid in QUERY.keys():
         log(msg+"this qid is already process(ed|ing), do nothing!")
     else:
-        QUERY[qid]=(artist,album,track)    # save the query
+        QUERY[qid]=[artist,album,track,False]    # save the query (isResolversEnded==False)
 
         # here is synchronous,
         for idx,path in enumerate(RESOLVERS):
@@ -83,6 +83,8 @@ def initSearch(qid,artist,album,track):
             else:
                 log(msg+"%s %s  found %d result(s), but not exact" % (info,resolver.__class__.__name__,len(data["results"])))
 
+        QUERY[qid][3]=True  # mark as solved (isResolversEnded==True)
+
     return True
 
 
@@ -94,9 +96,11 @@ def fetchSearch(qid):
 
     msg="fetchSearch(%s) -> "%qid
     if qid in QUERY.keys():
-        artist,album,track = QUERY[qid]
+        artist,album,track,isResolversEnded = QUERY[qid]
 
         liste=[]
+
+        isAResult=False
         for obj in RESPONSE.get(qid,{"results":[]})["results"]:
 
             # create the SID element to reference to be able to retrieve obj
@@ -117,7 +121,17 @@ def fetchSearch(qid):
             }
             liste.append(result)
 
+            if result["score"]>=1: isAResult=True
+
         liste.sort(lambda a,b: cmp(int(a["score"]),int(b["score"])) )
+
+        if isResolversEnded==False:
+            # resolver is always searching
+            # but perhaps there is already a result
+            query_solved = isAResult
+        else:
+            # resolver has ended its search
+            query_solved = True
 
         query={
             "qid":qid,
@@ -125,9 +139,9 @@ def fetchSearch(qid):
             "album" : album,
             "track" : track,
             "mode" : "normal",
-            "solved" : True if [True for obj in liste if int(obj["score"])>=1] else False,
+            "solved" : query_solved,
         }
-        log(msg+"return %d result(s) and solved=%s"%(len(liste),query["solved"]))
+        log(msg+"return %d result(s) and solved=%s"%(len(liste),query_solved))
         return query,liste
     else:
         logerr(msg+"can't find qid (not initialized)")
@@ -161,7 +175,7 @@ def song(sid):
 if __name__ == "__main__":
     assert initSearch(u"qid1","testaa","","XXXX")    # test a not found query
     qr,ll=fetchSearch(u"qid1")
-    assert not qr["solved"]
+    assert qr["solved"]
     assert len(ll)==0
 
     assert initSearch(u"qid2","testa","","local")    # test a local file

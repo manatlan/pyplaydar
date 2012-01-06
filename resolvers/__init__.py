@@ -14,7 +14,7 @@
 ## GNU General Public License for more details.
 ##
 ########################################################################
-import re,string
+import re,string,sys
 import json
 from subprocess import Popen,PIPE
 from struct import pack,unpack
@@ -44,9 +44,9 @@ def mkresp(std):
 class Resolver(object):
     """ class to handle a resolver (communication(sync) thru stdin/stdout)"""
     def __init__(self,cmd):
-        #!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!
-        #~ if cmd.endswith(".py"): cmd=["c:/python25/python.exe",cmd]
-        #!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!!/!
+        # Specific case for py file on win machines (without shebang line)
+        if cmd.endswith(".py"): cmd=[sys.executable,cmd]
+
         self._cmd=cmd
         self._p = Popen(self._cmd, shell=False,stdout=PIPE,stderr=PIPE,stdin=PIPE)
         # load settings
