@@ -1,7 +1,5 @@
 **pyplaydar** try to implement [Playdar](http://www.playdar.org/) in pure python. It should work with python 2.X, and use [bottle](http://bottlepy.org/) and [cherrypy wsgi server](http://docs.cherrypy.org/stable/refman/wsgiserver/init.html).
 
-It's fully compatible with [JS clients](http://www.playdarjs.org/)
-
 ----
 
 **IMPORTANT NOTE** (06/01/2012)
@@ -11,14 +9,17 @@ The web frontend page will be able to configure resolvers too !
 
 ----
 
-Current notes about current implementation :
+Features :
 
-* **It (should) supports the original playdar's resolvers** !!!
-* **Works on linux/windows as is** (should work on mac)
-* for web-clients : Note that it auto-authenticate all clients
-* there is a **test/resolver.py** (which resolve artist/title : testa/web & testa/local)
+* Fully compatible with [JS clients](http://www.playdarjs.org/)
+* Works with original playdar's resolvers
+* Works on *nix/win as is (should work on mac)
+* Web frontend to easily test resolvers
+* there is only a **test/resolver.py** (which resolve artist/title : testa/web & testa/local)
+* Simple and test'able
 
 Current notes about "playdar protocol"'s implementation :
 
+* for web-clients : Note that it auto-authenticate all clients
 * resolve method : for a same query : it's always the same QID which is returned
 * get_results : for a same file/object : it's always the same SID which is returned
