@@ -25,6 +25,7 @@
 
 ----
 **What's in pyplaydar**
+=======================
 
 * **libs/** : Contains externals libs provided with pyplaydar ([bottle](http://bottlepy.org/) and [cherrypy wsgi server](http://docs.cherrypy.org/stable/refman/wsgiserver/init.html))
 * **static/** : Contains static ressources used by the webserver. Currently, only a template for the web frontend.
@@ -38,7 +39,7 @@
 
         * **resolver.py** : the executable
         * **lib.py** : a python lib (to wrap pyv8/js to a python class)
-        * **tompres.py** : a command line to install/uninstall tomahawk's resolvers properly.
+        * **tomres.py** : a command line to install/uninstall tomahawk's resolvers properly.
 
     * **test_a_resolver.py** : A command line to test a resolver in console.
 
@@ -51,3 +52,24 @@ there are a lot of readme.txt files too, which explain some things.
 
 ----
 **How to start**
+================
+
+**Note**: to be able to use the tomahawk's resolvers, you'll need to install [pyv8](http://code.google.com/p/pyv8/)
+
+
+Grab this folder.
+
+In a console, change dir to "resolvers/tomahawk/"
+
+run "./tomres.py install", to install tomahawk resolvers
+
+change dir to pyplaydar root (../..)
+
+edit your pyplaydar.conf, to have that :
+
+    test/resolver.py
+    tomahawk/resolver.py tomahawk-resolvers/dilandau/dilandau.js
+
+run "./pyplaydar.py"
+
+run a browser to point "http://localhost:60210/" (this is the web frontend for testing), you can start to query dilandau
