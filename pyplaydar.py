@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ########################################################################
 ##
-##    Copyright (C) 2011 manatlan manatlan[at]gmail(dot)com
+##    Copyright (C) 2012 manatlan manatlan[at]gmail(dot)com
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published
@@ -14,6 +14,7 @@
 ## GNU General Public License for more details.
 ##
 ########################################################################
+from threading import Thread
 import os,sys
 #ensure that the script is running in its folder
 try:
@@ -23,7 +24,7 @@ except:
 
 import libs.bottle as web # http://bottle.paws.de/page/docs
 web.TEMPLATE_PATH=[os.path.join(os.path.dirname(__file__),"static")]
-#~ web.debug(True)
+#~ web.debug(True)  # to reload tpl dynamicly
 import resolver
 import uuid,json
 import logging
@@ -83,14 +84,20 @@ def playdarApi():
             artist=web.request.query.artist.strip()
             album=web.request.query.album.strip()
             track=web.request.query.track.strip()
-            qid=web.request.query.qid or str(uuid.uuid5(uuid.NAMESPACE_DNS,(artist+album+track).encode("utf_8")))
-            if resolver.initSearch(qid,artist,album,track):
+            if artist and track:
+                qid=web.request.query.qid or str(uuid.uuid5(uuid.NAMESPACE_DNS,(artist+album+track).encode("utf_8")))
+
+                # start the search in a thread
+                Thread(target=resolver.initSearch, args=(qid,artist,album,track)).start()
+
                 log(msg+"reply a qid(%s)"%qid)
                 return mkjson(callback,{"qid":qid} )
             else:
-                logerr(msg+"can't initiate relovers!")
+                logerr(msg+"can't reply coz it miss, at least, artist and track")
+                web.abort(400)
         else:
             logerr(msg+"can't reply coz auth is KO")
+            web.abort(400)
     elif method=="get_results":
         if authenticated:
             qid=web.request.query.qid
@@ -107,37 +114,50 @@ def playdarApi():
                     })
                 else:
                     logerr(msg+"can't reply coz qid is unknown")
+                    web.abort(400)
             else:
                 logerr(msg+"can't reply coz qid is missing")
+                web.abort(400)
         else:
             logerr(msg+"can't reply coz auth is KO")
+            web.abort(400)
     else:
         logerr(msg+"unknown method ?!?")
+        web.abort(400)
 
 @web.get('/sid/<sid>')
 def play(sid):
-    contentType,size,obj = resolver.song(sid)
-    if isinstance(obj,basestring):
-        log("ASK SID."+sid+"-> redirect to URL(%s)"%obj)
-        web.redirect(obj) #headers are (perhaps) set by its own server
+    r=resolver.song(sid)
+    if r:
+        contentType,size,obj = r
+        if isinstance(obj,basestring):
+            log("ASK SID."+sid+"-> redirect to URL(%s)"%obj)
+            web.redirect(obj) #headers are (perhaps) set by its own server
+        else:
+            log("ASK SID."+sid+"-> will return to a file-like (%s) of size (%s)"%(contentType,str(size)))
+            if contentType: web.response.content_type = contentType
+            if size: web.response.content_length = str(size)
+            return obj
     else:
-        log("ASK SID."+sid+"-> will return to a file-like (%s) of size (%s)"%(contentType,str(size)))
-        if contentType: web.response.content_type = contentType
-        if size: web.response.content_length = str(size)
-        return obj
+        log("ASK SID."+sid+"-> unknown sid ?!")
+        web.abort(404)
 
 @web.get('/')
 @web.view("web")
 def index():
-    return {"msg":"pyplaydar is running"}
+    return {"msg":"PyPlaydar Server is running ..."}
 
 @web.error(404)
 def Error404(code):
     return '404 Not found'
 
+@web.error(400)
+def Error400(code):
+    return '400 Bad Request'
+
 @web.error(500)
-def Error404(code):
-    return '500 Server Error (see log)'
+def Error500(code):
+    return '500 Server Error'
 
 if __name__=="__main__":
 

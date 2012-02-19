@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ########################################################################
 ##
-##    Copyright (C) 2011 manatlan manatlan[at]gmail(dot)com
+##    Copyright (C) 2012 manatlan manatlan[at]gmail(dot)com
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published
@@ -14,19 +14,22 @@
 ## GNU General Public License for more details.
 ##
 ########################################################################
+
 from __init__ import Resolver
 import sys,os
 
 if __name__ == "__main__":
-    #~ sys.argv=["","test/resolver.py","my_artit","his_track"]
+    #~ sys.argv=["","my_artit","his_track","test/resolver.py"]
 
-    if len(sys.argv)==4:
-        path,artist,track = sys.argv[1:]
+    if len(sys.argv)>=4:
+        artist = sys.argv[1]
+        track = sys.argv[2]
+        path = sys.argv[3:]
         p=Resolver( path )
         print "SETTINGS:"
         for k,v in p.settings.items():
             print "-",k,"=",v
         print p.query( artist=artist,track=track,qid="123456789" )
     else:
-        print """USAGE: %s <path_to_resolver> <artist> <track>
+        print """USAGE: %s <artist> <track> <path_to_resolver>
 Script helper to test a resolver""" % os.path.basename(sys.argv[0])

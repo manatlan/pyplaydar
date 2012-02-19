@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-# Modified by <manatlan@gmail.com> 2011, to make a test plugin
+# Modified by <manatlan@gmail.com> 2012, to make this plugin
 # Created by Paul Lamere<Paul.Lamere@gmail.com> twitter.com/plamere
 # Based on the seeqpod resolver by:
 # Max Howell <max@methylblue.com> twitter.com/mxcl
@@ -16,6 +16,16 @@ import socket
 from xml.dom import minidom
 from struct import unpack, pack
 
+def ERROR(m):
+    print >> sys.stderr, "ERROR:", m
+    sys.exit(-1)
+
+try:
+    import PyV8
+except ImportError:
+    ERROR("You'll need to install PyV8 (http://code.google.com/p/pyv8/) to be able to use this resolver !")
+
+from lib import TomRes
 ###################################################################### functions
 def print_json(o):
     s = json.dumps(o)
@@ -23,48 +33,21 @@ def print_json(o):
     sys.stdout.write(s)
     sys.stdout.flush()
 
-def resolve(artist, track):
-    import time
-    time.sleep(1)
+import os,sys
+#ensure that the script is running in its folder
+try:
+    os.chdir(os.path.split(sys.argv[0])[0])
+except:
+    pass
 
-    ll=[]
 
-    if artist=="testa" and track=="web":
-        ll.append( {
-            "artist": artist,
-            "track": track,
-            "duration": 0,
-            "source":  "Test Resolver",
-            "extension": "mp3",
-            "mimetype": "audio/mp3",
-            "url": "http://manella.free.fr/mp3/manella_-_zmorlockfunk.mp3",
-            "score":1,
-            }
-        )
+if not len(sys.argv)>1:
+    ERROR("Tomahawk resolver should be called with an argument (relative path to js file)")
 
-    if artist=="testa" and track=="local":
-        ll.append( {
-            "artist": artist,
-            "track": track,
-            "duration": 0,
-            "source": "Test Resolver",
-            "extension": "mp3",
-            "mimetype": "audio/mp3",
-            "url": "libs/bottle.py",
-            "score":1,
-            }
-        )
-
-    return ll
+t=TomRes(sys.argv[1])
 
 ####################################################################### settings
-settings = dict()
-settings["_msgtype"] = "settings"
-settings["name"] = "Test Resolver"
-settings["targettime"] = 2000 # millseconds
-settings["weight"] = 50     # not speediest
-print_json( settings )
-
+print_json( t.settings )
 ###################################################################### main loop
 while 1:
     length = sys.stdin.read(4)
@@ -85,7 +68,7 @@ while 1:
         try:
             request = json.loads(msg)
             # print request
-            tracks = resolve(request['artist'], request['track'])
+            tracks = t.search(request['qid'],request['artist'],request.get('album',""), request['track'])
             response = { 'qid':request['qid'], 'results':tracks, '_msgtype':'results' }
             print_json(response)
         except:

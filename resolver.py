@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ########################################################################
 ##
-##    Copyright (C) 2011 manatlan manatlan[at]gmail(dot)com
+##    Copyright (C) 2012 manatlan manatlan[at]gmail(dot)com
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published
@@ -27,7 +27,7 @@ log= lambda x: logger.info("RESOLVER: "+x)
 logerr= lambda x: logger.error("RESOLVER: "+x)
 
 
-
+import shlex
 
 #==============================================================================
 # INITIALIZE (import resolvers, shelve, ...)
@@ -35,24 +35,20 @@ logerr= lambda x: logger.error("RESOLVER: "+x)
 RESOLVERS=[]
 print "Resolvers:"
 try:
-    for r in [i.strip() for i in file("pyplaydar.conf") if i.strip()]:
-        path = os.path.normcase(os.path.join("resolvers",r))
-        if not os.path.isfile( path ):
-            raise Excetion("Can't found the resolver : "+r)
+    for cmds in [shlex.split(i.strip()) for i in file("pyplaydar.conf") if i.strip() and not i.strip().startswith("#")]:
+        cmds[0] = os.path.normcase(os.path.join("resolvers",cmds[0]))
+        if not os.path.isfile( cmds[0] ):
+            raise Exception("Can't found the resolver command: "+cmds[0])
         else:
             # try to instanciate it
-            print "-",Resolver(path)
+            print Resolver(cmds).settings
 
-            RESOLVERS.append(path)
+            RESOLVERS.append(cmds)
 except Exception,e:
     print "problem with resolvers ?!",e
     sys.exit(-1)
 #TODO: sort according settings[weight]
 
-
-#~ QUERY=shelve.open("query.shelve")
-#~ RESPONSE=shelve.open("response.shelve")
-#~ SID=shelve.open("sid.shelve")
 
 QUERY={}
 RESPONSE={}
@@ -62,21 +58,22 @@ SID={}
 ###############################################################################
 def initSearch(qid,artist,album,track):
 ###############################################################################
-    """ return True if search has been initiated """
+    """ Initiate the search thru available/configured resolvers """
     qid=str(qid)
     msg="initSearch(%s,...) : "%qid
     if qid in QUERY.keys():
         log(msg+"this qid is already process(ed|ing), do nothing!")
     else:
         QUERY[qid]=[artist,album,track,False]    # save the query (isResolversEnded==False)
+        RESPONSE[qid]=[]
 
         # here is synchronous,
         for idx,path in enumerate(RESOLVERS):
             info="%d/%d"%(idx+1,len(RESOLVERS))
             resolver=Resolver(path)
             data=resolver.query(artist=artist,album=album,track=track,qid=qid )
-            RESPONSE[qid]= data
-            if [True for obj in data["results"] if int(obj["score"])>=1]:
+            RESPONSE[qid]+=data["results"]
+            if [True for obj in data["results"] if float(obj.get("score",0) or 0)>=1]:
                 # break toolchain if a resolver has found 1 exact match
                 log(msg+"%s %s found %d result(s), and an exact ! stop searching" % (info,resolver.__class__.__name__,len(data["results"])))
                 break
@@ -85,13 +82,13 @@ def initSearch(qid,artist,album,track):
 
         QUERY[qid][3]=True  # mark as solved (isResolversEnded==True)
 
-    return True
-
 
 
 ###############################################################################
 def fetchSearch(qid):
 ###############################################################################
+    """ fetch available result for a QID """
+
     qid=str(qid)
 
     msg="fetchSearch(%s) -> "%qid
@@ -101,7 +98,7 @@ def fetchSearch(qid):
         liste=[]
 
         isAResult=False
-        for obj in RESPONSE.get(qid,{"results":[]})["results"]:
+        for obj in RESPONSE.get(qid,[]):
 
             # create the SID element to reference to be able to retrieve obj
             sid=str(uuid.uuid5(uuid.NAMESPACE_DNS,obj["url"].encode("utf_8")))
@@ -117,13 +114,13 @@ def fetchSearch(qid):
                 "mimetype": obj.get("mimetype",""),
                 "bitrate": obj.get("bitrate",""),
                 "duration": obj.get("duration",""),
-                "score": int(obj.get("score","0")),
+                "score": float(obj.get("score","0") or 0),
             }
             liste.append(result)
 
             if result["score"]>=1: isAResult=True
 
-        liste.sort(lambda a,b: cmp(int(a["score"]),int(b["score"])) )
+        liste.sort(lambda a,b: -cmp(float(a["score"]),float(b["score"])) )
 
         if isResolversEnded==False:
             # resolver is always searching
@@ -171,21 +168,23 @@ def song(sid):
     else:
         logerr(msg+"return nothing coz sid is not defined (not fetched)")
 
-
-if __name__ == "__main__":
-    assert initSearch(u"qid1","testaa","","XXXX")    # test a not found query
+def test_this():
+    initSearch(u"qid1","testaa","","XXXX")    # test a not found query
     qr,ll=fetchSearch(u"qid1")
     assert qr["solved"]
     assert len(ll)==0
 
-    assert initSearch(u"qid2","testa","","local")    # test a local file
+    initSearch(u"qid2","testa","","local")    # test a local file
     qr,ll=fetchSearch(u"qid2")
     assert qr["solved"]
     assert type(song(ll[0]["sid"])[2]) == file
 
-    assert initSearch(u"qid3","testa","","web")     # test a web file
+    initSearch(u"qid3","testa","","web")     # test a web file
     qr,ll=fetchSearch(u"qid3")
     assert qr["solved"]
     assert isinstance(song(ll[0]["sid"])[2],basestring)
 
     print "methods ok"
+
+if __name__ == "__main__":
+    test_this()

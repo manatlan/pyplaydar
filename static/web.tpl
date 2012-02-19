@@ -69,7 +69,7 @@ setInterval( function() {
             var liste="";
             for(var idr in query.results) {
                 var result=query.results[idr];
-                liste+="<li><a href='/sid/"+result.sid+"'>"+result.artist+" - "+result.track+"</a></li>";
+                liste+="<li><a href='/sid/"+result.sid+"'>"+result.artist+" - "+result.track+" (score:"+result.score+", time:"+result.duration+", src:"+result.source+")</a></li>";
             }
             hres.innerHTML+="<div>SEARCH"+(query.isSolved?"":"'ing")+" : "+query.artist+" - "+query.track+" : "+(liste || "?")+"</div>";
         }
@@ -78,7 +78,7 @@ setInterval( function() {
 </script>
 </head>
 <body>
-    <h3>PyPlaydar Server is running ...</h3>
+    <h3>{{msg}}</h3>
     <form onsubmit="search(this); return false">
         Artist:<input name="q_artist" type="text" />
         Track:<input name="q_track" type="text" />

@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 ########################################################################
 ##
-##    Copyright (C) 2011 manatlan manatlan[at]gmail(dot)com
+##    Copyright (C) 2012 manatlan manatlan[at]gmail(dot)com
 ##
 ## This program is free software; you can redistribute it and/or modify
 ## it under the terms of the GNU General Public License as published
@@ -14,112 +14,206 @@
 ## GNU General Public License for more details.
 ##
 ########################################################################
-import urllib,json
+""" TESTS ALL THINGS """
+import urllib,urllib2,re,json,sys,time,threading
+from pyplaydar import web,resolver
+from StringIO import StringIO
+import urlparse
 
-HOST = "localhost:60210"
 
-def testm(method,args):
-    if "auth" not in args: args["auth"]="test" #!!!!!!!!!!!!!!!!!!!!!!!!!!
-    ua="&".join(["%s=%s"%(k,urllib.quote_plus(v)) for k,v in args.items()])
-    if ua: ua="?"+ua
-    h=testu(method+ua)
+APP=web.default_app()
+resolver.RESOLVERS = [['resolvers/test/resolver.py']]   # OVERWRITE RESOLVERS (to use test only)
+
+#~ sys.exit()
+def call(url,data=None,headers=None):
+    """
+        call url with POST method if data is not none, else GET method, with dict of headers
+        WSGI-CALL
+
+        return tuple :
+            - http status code (int)
+            - dict of response headers
+            - body
+    """
+    if headers is None: headers={}
+
+    e={"wsgi.errors":StringIO(),}
+
+    su=urlparse.urlsplit(url)
+    e["PATH_INFO"]=su.path
+    e["QUERY_STRING"] = su.query
+    e["HTTP_HOST"] = su.netloc
+    for k,v in headers.items():
+        e["HTTP_"+k]=v;
+
+    if data:
+        post = urllib.urlencode(data)
+        e['wsgi.input']=StringIO()
+        e['REQUEST_METHOD'] = 'POST'
+        e['CONTENT_LENGTH'] = str(len(post))
+        e['wsgi.input'].write(post)
+        e['wsgi.input'].seek(0)
+    else:
+        e['REQUEST_METHOD'] = 'GET'
+
+    t={}
+    def h(*s):
+        assert len(s)==2
+        t["s"],t["h"]=s[0],s[1]
+    time.sleep(0.05)                            #slow down the process
+    body="".join( APP(e,h) )  # wsgi call
+    e['wsgi.errors'].seek(0)
+    assert not e['wsgi.errors'].read(10000)
+    h=dict( [(a.lower(),b) for a,b in t["h"]])
+    return int(re.match("^\d+",t["s"]).group(0)),h,body
+
+def mcall(path,data=None,headers=None):
+    return call("http://localhost:60210"+path,data,headers)
+
+
+
+def test_server():
+    assert mcall("/unknown_path")[0]==404
+    assert "Not found" in mcall("/unknown_path")[2]
+
+    r=mcall("/")
+    assert r[0]==200
+    assert "PyPlaydar Server is running" in r[2]
+    assert "UTF-8" in r[1]["content-type"]
+
+    assert mcall("/api/")[0]==400
+    assert mcall("/api/?method=kokokkokoko")[0]==400
+
+    assert mcall("/sid/")[0]==404
+    assert mcall("/sid/gfdsgfdsgfds")[0]==404
+
+def test_auth():
+    r=mcall("/auth_1/?receiverurl="+urllib.quote("http://X/P"))
+    assert r[0]==302
+    assert r[1]["location"] == "http://X/P#myauth"
+
+    assert mcall("/authcodes?revoke=myauth")[0]==200
+    assert mcall("/authcodes?revoke=myauth")[0]==200
+
+def test_api_stat():
+
+    r=mcall("/api/?method=stat")
+    assert r[0]==200
+    assert r[1]['content-type']=='application/json'
+    d=json.loads(r[2])
+    assert d=={u'version': u'0.1.1', u'authenticated': False, u'name': u'playdar', u'capabilities': []}
+    assert not d['authenticated']
+
+    r=mcall("/api/?method=stat&auth=test")
+    assert r[0]==200
+    assert r[1]['content-type']=='application/json'
+    d=json.loads(r[2])
+    assert d=={u'version': u'0.1.1', u'authenticated': True, u'name': u'playdar', u'capabilities': []}
+    assert d['authenticated']
+
+    #test jsonp
+    r=mcall("/api/?method=stat&auth=test&jsonp=kiki")
+    assert r[0]==200
+    assert r[1]['content-type'] != 'application/json'
+    assert r[2]=="""kiki({"version": "0.1.1", "authenticated": true, "name": "playdar", "capabilities": []})"""
+
+def test_api_resolve():
+    nimp="XHXJSHUXS17281728749JJJ"
+
+    assert mcall("/api/?method=resolve")[0]==400
+    assert mcall("/api/?method=resolve&auth=test")[0]==400
+    assert mcall("/api/?method=resolve&auth=test&artist=toto")[0]==400
+
+    # classical search
+    r=mcall("/api/?method=resolve&auth=test&artist=%(nimp)s&track=%(nimp)s"%locals())
+    assert r[0]==200
+    assert r[1]['content-type']=='application/json'
+    d=json.loads(r[2])
+    assert d.keys()==["qid"]
+
+    # provide its own qid
+    r=mcall("/api/?method=resolve&auth=test&artist=%(nimp)s&track=%(nimp)s&qid=123456789"%locals())
+    assert r[0]==200
+    assert r[1]['content-type']=='application/json'
+    d=json.loads(r[2])
+    assert d["qid"]=="123456789"
+
+def test_api_results():
+    assert mcall("/api/?method=get_results")[0]==400
+    assert mcall("/api/?method=get_results&auth=test")[0]==400
+    assert mcall("/api/?method=get_results&auth=test&qid=789789778978")[0]==400 #unknown qid
+
+    def test(A,T):
+        r=mcall("/api/?method=resolve&auth=test&artist=%s&track=%s" % (A,T))
+        d=json.loads(r[2])
+        qid=d["qid"]
+        r=mcall("/api/?method=get_results&auth=test&qid=%s"%qid)
+        assert r[0]==200
+        assert r[1]['content-type']=='application/json'
+        d=json.loads(r[2])
+        assert d["qid"]==qid
+        assert d["query"]["artist"]==A
+        assert d["query"]["track"]==T
+        assert d["query"]["qid"]==qid
+        assert d["query"]["solved"]==False
+        assert d["results"]==[]
+
+        time.sleep(1.5) # wait for results
+
+        r=mcall("/api/?method=get_results&auth=test&qid=%s"%qid)
+        assert r[0]==200
+        assert r[1]['content-type']=='application/json'
+        d=json.loads(r[2])
+        assert d["qid"]==qid
+        assert d["query"]["artist"]==A
+        assert d["query"]["track"]==T
+        assert d["query"]["qid"]==qid
+        assert d["query"]["solved"]==True
+        assert len(d["results"])==1
+        r=d["results"][0]
+        assert r["artist"]==A
+        assert r["track"]==T
+        assert r["sid"]
+        assert r["source"]
+        return r["sid"]
+
+    sid=test("testa","web")
+    r=mcall("/sid/"+sid)
+    assert r[0]==302
+    assert "location" in r[1]
+
+    sid=test("testa","local")
+    r=mcall("/sid/"+sid)
+    assert r[0]==200
+    assert r[1]['content-type']=='audio/mp3'
+    assert r[2]
+
+
+def test_my_resolvers():    #TODO: can do better here !
+    import resolvers
+
+    import os
+    prec=os.getcwd()
     try:
-        return json.loads(h)
-    except:
-        print "**warning** doesn't return a json object !"
-        return h
+        os.chdir("resolvers")
+        resolvers.test_this()
 
+    finally:
+        os.chdir(prec)
 
-def testu(path):
-    return testr(path).read()
+if __name__=="__main__":
+    test_my_resolvers()
+    resolver.test_this()
 
-def testr(path):
-    print "CALL:","http://%s%s"%(HOST,path)
-    return urllib.urlopen("http://%s%s"%(HOST,path))
+    # web tests
+    test_server()
+    test_auth()
+    test_api_stat()
+    test_api_resolve()
+    test_api_results()
 
-
-# tests UT in py files
-#===========================================================================
-import os
-old=os.getcwd()
-os.chdir("resolvers")
-execfile("__init__.py")
-os.chdir(old)
-execfile("resolver.py")
-
-
-# test auth mechanism (not really unittest here)
-#===========================================================================
-import urllib
-u=urllib.quote("http://%s/sfdhqsfhd"%HOST) # fake local 404 url
-r=testr("/auth_1/?receiverurl=%s"%u)
-assert r.code in (400,404)
-
-assert testu("/authcodes?revoke=test")==""
-assert testu("/authcodes")==""
-
-
-
-# test bad auth token with all api
-#===========================================================================
-# method stat reply, with authenticated=false
-assert not testm("/api/",{"method":"stat","auth":""})["authenticated"]
-assert not testm("/api/",{"method":"stat","auth":"bad"})["authenticated"]
-
-# method resolve reply nothing if bad auth
-assert testm("/api/",{"method":"resolve","artist":"cake","track":"jolene","auth":"bad"})==""
-
-# method get_results reply nothing if bad auth
-assert testm("/api/",{"method":"get_results","qid":"XXX","auth":"bad"})==""
-
-
-
-# test stat
-#===========================================================================
-d=testm("/api/",{"method":"stat"})
-assert d["name"]=="playdar"
-assert d["authenticated"]
-assert type(d["capabilities"])==list
-d=testm("/api/",{"method":"stat","jsonp":"myJsonpCallback"})    # test jsonp
-assert d.startswith("myJsonpCallback(")
-
-# test resolve
-#===========================================================================
-d=testm("/api/",{"method":"resolve","artist":"cake","track":"jolene"})
-assert d["qid"]
-qid=d["qid"]
-
-# test providing its own qid
-d=testm("/api/",{"method":"resolve","artist":"cake","track":"jolene","qid":"myownqid"})
-assert d["qid"]=="myownqid"
-
-
-# test get_results
-#===========================================================================
-assert testm("/api/",{"method":"get_results","qid":"unknown qid"})=="" # unknown qid
-assert testm("/api/",{"method":"get_results","qid":"myownqid"})        # test preceding own qid
-assert testm("/api/",{"method":"get_results","qid":qid})
-
-
-# test sid (specifik to pyplaydar(test resolver)
-#===========================================================================
-d=testm("/api/",{"method":"resolve","artist":"XXXXX","track":"XXXXXX"})
-qid=d["qid"]
-r=testm("/api/",{"method":"get_results","qid":qid})
-assert not r["results"]     # return nothing
-
-# test a local sid
-#~ d=testm("/api/",{"method":"resolve","artist":"testa","track":"local"})
-#~ qid=d["qid"]
-#~ r=testm("/api/",{"method":"get_results","qid":qid})
-#~ assert len(r["results"])==1
-#~ assert testu("/sid/"+r["results"][0]["sid"])[:10]
-
-#~ # test a web sid
-#~ d=testm("/api/",{"method":"resolve","artist":"testa","track":"web"})
-#~ qid=d["qid"]
-#~ r=testm("/api/",{"method":"get_results","qid":qid})
-#~ assert len(r["results"])==1
-#~ assert testu("/sid/"+r["results"][0]["sid"])[:10]
+    for thread in threading.enumerate():
+        if thread is not threading.currentThread():
+            thread.join()
 
 
